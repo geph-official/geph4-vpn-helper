@@ -1,10 +1,15 @@
-use std::process::Stdio;
+use std::{
+    fs::Permissions,
+    os::unix::{net::UnixListener, prelude::RawFd},
+    process::Stdio,
+};
 
+use bytes::Bytes;
 use geph4_protocol::VpnStdio;
 use once_cell::sync::Lazy;
-use smol::prelude::*;
-use sosistab::Buff;
+use smol::{fs::unix::PermissionsExt, prelude::*};
 use tundevice::TunDevice;
+use uds::UnixStreamExt;
 
 /// The raw TUN device.
 static RAW_TUN: Lazy<TunDevice> = Lazy::new(|| {
@@ -80,9 +85,16 @@ async fn clear_iptables() {
 }
 
 pub fn main() {
+    env_logger::Builder::from_env(
+        env_logger::Env::default().default_filter_or("geph4_vpn_helper=debug,warn"),
+    )
+    .format_timestamp_millis()
+    .init();
     // escalate to root unconditionally
     nix::unistd::setuid(nix::unistd::Uid::from_raw(0))
         .expect("must be run with root privileges or setuid root");
+    let uds_path = start_uds_loop(RAW_TUN.dup_rawfd());
+    log::debug!("started UDS at {}", uds_path);
     smol::block_on(async move {
         clear_iptables().await;
         let args: Vec<String> = std::env::args().skip(1).collect();
@@ -103,32 +115,38 @@ pub fn main() {
             .unwrap();
         let mut child_output = child.stdout.take().unwrap();
         let mut child_input = child.stdin.take().unwrap();
-        // two loops
-        let read_loop = async {
-            let mut buf = [0; 2048];
-            loop {
-                let n = RAW_TUN.read_raw(&mut buf).await.unwrap();
-                let bts = Buff::copy_from_slice(&buf[..n]);
-                VpnStdio { verb: 0, body: bts }
-                    .write(&mut child_input)
-                    .await
-                    .unwrap();
-                child_input.flush().await.unwrap();
-            }
-        };
-        let write_loop = async {
-            loop {
-                let msg = VpnStdio::read(&mut child_output).await.unwrap();
-                match msg.verb {
-                    0 => RAW_TUN.write_raw(&msg.body).await.unwrap(),
-                    1 => {
-                        RAW_TUN.assign_ip(&String::from_utf8_lossy(&msg.body));
-                        setup_iptables().await;
-                    }
-                    _ => log::warn!("invalid verb kind: {}", msg.verb),
+        VpnStdio {
+            verb: 255,
+            body: Bytes::copy_from_slice(uds_path.as_bytes()),
+        }
+        .write(&mut child_input)
+        .await
+        .unwrap();
+        loop {
+            let msg = VpnStdio::read(&mut child_output).await.unwrap();
+            match msg.verb {
+                0 => RAW_TUN.write_raw(&msg.body).await.unwrap(),
+                1 => {
+                    RAW_TUN.assign_ip(&String::from_utf8_lossy(&msg.body));
+                    setup_iptables().await;
                 }
+                _ => log::warn!("invalid verb kind: {}", msg.verb),
             }
-        };
-        smol::future::race(read_loop, write_loop).await
+        }
     })
+}
+
+fn start_uds_loop(fd: RawFd) -> String {
+    let path = format!("/tmp/{}", fastrand::u64(0..=u64::MAX));
+    let listener = UnixListener::bind(&path).expect("cannot start unix listener");
+    std::fs::set_permissions(&path, Permissions::from_mode(0o666)).expect("cannot set perms");
+    std::thread::spawn(move || loop {
+        let (client, _) = listener.accept().expect("cannot accept");
+        log::debug!("unix client accepted!");
+        let fd = unsafe { libc::dup(fd) };
+        client
+            .send_fds(b"HELLO", &[fd])
+            .expect("could not send fds");
+    });
+    path
 }
