@@ -834,7 +834,7 @@ dependencies = [
 
 [[package]]
 name = "geph4-vpn-helper"
-version = "0.1.5"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "bytes",
