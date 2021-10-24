@@ -171,7 +171,7 @@ fn is_geph_pid(pid: u32) -> bool {
             dbg!(proc
                 .exe()
                 .file_name()
-                .map(|s| s.to_string_lossy())
+                .map(|s| s.to_string_lossy().to_lowercase())
                 .unwrap_or_default())
                 == "geph4-client.exe"
         })

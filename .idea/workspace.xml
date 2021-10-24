@@ -5,6 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="e1fc8126-94de-426c-96a9-d277133e4809" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/windows/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/windows/mod.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
