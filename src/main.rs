@@ -5,7 +5,7 @@ mod linux;
 mod windows;
 
 #[cfg(target_os = "linux")]
-fn main() {
+fn main() -> anyhow::Result<()> {
     linux::main()
 }
 

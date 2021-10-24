@@ -852,6 +852,7 @@ dependencies = [
  "once_cell",
  "parking_lot",
  "pnet_packet",
+ "scopeguard",
  "smol",
  "sosistab",
  "sysinfo",

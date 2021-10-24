@@ -1,3 +1,4 @@
+use geph4_protocol::VpnStdio;
 use once_cell::sync::Lazy;
 use parking_lot::{RwLock, RwLockWriteGuard};
 use std::{
@@ -7,7 +8,6 @@ use std::{
     process::{ChildStdin, ChildStdout, Stdio},
     sync::Arc,
 };
-use vpn_structs::StdioMsg;
 mod windivert;
 use crate::windows::windivert::InternalError;
 use defmac::defmac;
@@ -109,7 +109,7 @@ fn download_loop(mut geph_stdout: ChildStdout) {
     });
     loop {
         // read a message from Geph
-        let msg = StdioMsg::read_blocking(&mut geph_stdout).unwrap();
+        let msg = VpnStdio::read_blocking(&mut geph_stdout).unwrap();
         match msg.verb {
             0 => {
                 let mut packet = msg.body.to_vec();
@@ -226,7 +226,7 @@ fn upload_loop(mut geph_stdin: ChildStdin) {
                         if LOG_LIMITER() {
                             log::debug!("stuffing non-Geph packet of length {}", pkt.len());
                         }
-                        let msg = StdioMsg {
+                        let msg = VpnStdio {
                             verb: 0,
                             body: pkt.into(),
                         };
