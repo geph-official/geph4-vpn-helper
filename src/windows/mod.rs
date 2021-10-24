@@ -167,7 +167,14 @@ fn is_geph_pid(pid: u32) -> bool {
     SYSTEM
         .read()
         .get_process(pid as usize)
-        .map(|proc| dbg!(proc.exe().file_name().unwrap().to_string_lossy()) == "geph4-client.exe")
+        .map(|proc| {
+            dbg!(proc
+                .exe()
+                .file_name()
+                .map(|s| s.to_string_lossy())
+                .unwrap_or_default())
+                == "geph4-client.exe"
+        })
         .unwrap_or_default()
 }
 
