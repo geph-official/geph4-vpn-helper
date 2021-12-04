@@ -33,8 +33,9 @@ fastrand = "1.5.0"
 uds = "0.2.6"
 libc = "0.2.103"
 scopeguard = "1.1.0"
+tun = "0.5.3"
 
-[target.'cfg(unix)'.dependencies]
+[target.'cfg(target_os="linux")'.dependencies]
 tundevice= "0.1.4"
 
 [target.'cfg(windows)'.dependencies]
@@ -42,3 +43,6 @@ winapi = { version = "0.3.9", features = ["minwindef", "mmsystem", "timeapi"] }
 governor= "0.3.2"
 sysinfo= "0.18.2"
 cached= "0.23.0"
+
+[build-dependencies]
+cc="1"
