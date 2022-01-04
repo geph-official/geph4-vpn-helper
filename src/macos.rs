@@ -15,7 +15,6 @@ pub fn main() -> anyhow::Result<()> {
         return Ok(());
     }
     let mut tun_device = tun::platform::macos::Device::new(tun::Configuration::default().up())?;
-    tun_device.set_destination("100.64.0.1".parse()?)?;
     // Run Geph itself
     let mut child = std::process::Command::new("sudo")
         .arg("-u")
@@ -58,12 +57,12 @@ pub fn main() -> anyhow::Result<()> {
             1 => {
                 let ipaddr_and_slash = String::from_utf8_lossy(&msg.body);
                 let ipaddr = ipaddr_and_slash.split('/').next().unwrap();
-                // std::process::Command::new("ifconfig")
-                //     .arg(tun_device.name())
-                //     .arg(ipaddr)
-                //     .arg("100.64.0.1")
-                //     .spawn()?
-                //     .wait()?;
+                std::process::Command::new("ifconfig")
+                    .arg(tun_device.name())
+                    .arg(ipaddr)
+                    .arg("100.64.0.1")
+                    .spawn()?
+                    .wait()?;
             }
             _ => log::warn!("invalid verb kind: {}", msg.verb),
         }
