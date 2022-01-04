@@ -9,8 +9,4 @@ fn main() {
         );
         println!("cargo:rustc-link-lib=WinDivert");
     }
-
-    if cfg!(target_os = "macos") {
-        cc::Build::new().file("src/macos_utun.c").compile("utun");
-    }
 }
